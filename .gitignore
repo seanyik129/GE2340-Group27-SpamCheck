@@ -1,0 +1,15 @@
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+*.log
+dist/
+data/*
+!data/reference/
+data/reference/*
+!data/reference/iana-tlds.txt
+*.joblib
+*.pkl
+*.csv
+.env
+.env.*

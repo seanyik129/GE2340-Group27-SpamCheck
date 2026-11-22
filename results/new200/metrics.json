@@ -1,0 +1,17 @@
+{
+  "model_sha256": "efa77809368bd5014f23831ea550068382be205507b8679e74d69aec4a3cddb9",
+  "threshold": 0.3426507240628859,
+  "metrics": {
+    "n": 200,
+    "spam_n": 100,
+    "legitimate_n": 100,
+    "precision": 0.978021978021978,
+    "recall": 0.89,
+    "f1": 0.9319371727748691,
+    "false_positive_rate": 0.02,
+    "tp": 89,
+    "tn": 98,
+    "fp": 2,
+    "fn": 11
+  }
+}

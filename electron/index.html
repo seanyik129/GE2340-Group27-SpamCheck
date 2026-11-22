@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self';">
+  <title>SpamCheck · GE2340 Group 27</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="network.js" defer></script>
+  <script src="renderer.js" defer></script>
+</head>
+<body>
+  <header class="masthead">
+    <canvas id="network" aria-hidden="true"></canvas>
+    <div class="shell topbar">
+      <div class="brand"><span class="mark" aria-hidden="true">✓</span>SpamCheck</div>
+      <nav aria-label="Views">
+        <button id="check-view" aria-controls="check-panel" aria-pressed="true">Message check</button>
+        <button id="evidence-view" aria-controls="evidence-panel" aria-pressed="false">Validation results</button>
+      </nav>
+      <span id="model-state" class="model-state" role="status">Loading model</span>
+    </div>
+  </header>
+  <main class="shell">
+    <div id="app-error" role="alert" hidden></div>
+    <section id="check-panel" aria-labelledby="check-title">
+      <div class="page-head">
+        <h1 id="check-title">Message check</h1>
+        <p>Check an English message and see what influenced the prediction.</p>
+      </div>
+      <div class="workspace">
+        <section class="editor">
+          <h2>Message</h2>
+          <div class="examples" role="group" aria-label="Sample messages">
+            <button id="promo">Try a promotion</button>
+            <button id="campus">Try a campus notice</button>
+          </div>
+          <label class="sr-only" for="message">English message</label>
+          <textarea id="message" maxlength="10000" placeholder="Paste or type an English message…"></textarea>
+          <div class="actions">
+            <button class="primary" id="predict" disabled>Check message</button>
+            <button id="clear">Clear</button>
+            <kbd>Ctrl + Enter</kbd>
+          </div>
+        </section>
+        <section class="result" aria-live="polite">
+          <h2>Prediction</h2>
+          <div class="outcome">
+            <strong id="verdict">Awaiting a message</strong>
+            <div class="score-readout"><span>Spam score</span><strong id="score">—</strong></div>
+          </div>
+          <div class="meter">
+            <progress id="meter" max="1" value="0" aria-label="Spam score"></progress>
+            <span id="threshold-marker" aria-hidden="true"></span>
+          </div>
+          <p id="threshold" class="note">Loading decision threshold…</p>
+          <p id="language" class="note" hidden></p>
+          <div class="explanation">
+            <h3>Feature contributions</h3>
+            <p id="feature-empty" class="note">Check a message to see the features behind its score.</p>
+            <div id="feature-detail" hidden>
+              <div class="features">
+                <div><h4>Toward spam</h4><ul id="positive"></ul></div>
+                <div><h4>Away from spam</h4><ul id="negative"></ul></div>
+              </div>
+              <p class="note">Values show changes in the model’s log-odds.</p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </section>
+    <section id="evidence-panel" aria-labelledby="evidence-title" hidden>
+      <div class="page-head">
+        <h1 id="evidence-title">Validation results</h1>
+        <p id="sample"></p>
+      </div>
+      <div class="evidence">
+        <div class="metrics" id="metrics"></div>
+        <div class="matrix">
+          <table>
+            <caption>Confusion matrix</caption>
+            <thead><tr><th scope="col">Actual label</th><th scope="col">Flagged spam</th><th scope="col">Passed</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Spam</th><td id="tp"></td><td id="fn"></td></tr>
+              <tr><th scope="row">Normal</th><td id="fp"></td><td id="tn"></td></tr>
+            </tbody>
+          </table>
+          <p class="note">The team froze the model and threshold before evaluating these messages.</p>
+        </div>
+      </div>
+    </section>
+    <footer><span>Runs locally</span><span>GE2340 Group 27</span></footer>
+  </main>
+</body>
+</html>

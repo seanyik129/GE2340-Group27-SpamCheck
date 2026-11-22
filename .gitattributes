@@ -1,0 +1,2 @@
+# The frozen model verifies the bytes of the pinned IANA list on input.
+data/reference/iana-tlds.txt -text
