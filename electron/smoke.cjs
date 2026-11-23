@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { setTimeout: delay } = require('node:timers/promises');
 
-module.exports = async function smoke(window, screenshotDir, missingModel) {
+module.exports = async function smoke(window, screenshotDir) {
   const run = source => window.webContents.executeJavaScript(source);
   async function waitFor(expression) {
     const deadline = Date.now() + 22000;
@@ -18,16 +18,15 @@ module.exports = async function smoke(window, screenshotDir, missingModel) {
     fs.mkdirSync(screenshotDir, { recursive: true });
     fs.writeFileSync(path.join(screenshotDir, name), (await window.capturePage()).toPNG());
   }
-  if (missingModel) {
-    await waitFor('!document.getElementById("load-model").hidden');
-    assert.match(await run('document.getElementById("app-error").textContent'), /group model is missing/i);
-    assert.ok(await run('document.getElementById("predict").disabled'));
-    console.log('Electron smoke passed: a fresh checkout opens and offers model import.');
-    return;
-  }
-
+  await waitFor('document.getElementById("default-model-notice").open');
+  assert.equal(await run('document.getElementById("default-model-title").textContent'), 'Default model imported');
+  assert.match(await run('document.getElementById("default-model-instructions").textContent'), /Change model.*\.skops.*Use default model/);
+  await capture('default-model-notice.png');
+  await run('document.getElementById("acknowledge-model").click()');
+  await waitFor('!document.getElementById("default-model-notice").open');
   await waitFor('!document.getElementById("predict").disabled');
   assert.equal(await run('document.getElementById("model-state").textContent'), 'Frozen report model');
+  assert.ok(await run('!document.getElementById("load-model").disabled'));
   assert.ok(await run('document.getElementById("feature-detail").hidden'));
   await run('document.getElementById("promo").click(); document.getElementById("predict").click()');
   await waitFor('!document.getElementById("predict").disabled');
@@ -55,5 +54,5 @@ module.exports = async function smoke(window, screenshotDir, missingModel) {
   await run('document.getElementById("check-view").click()');
   assert.ok(await run('document.documentElement.scrollWidth <= innerWidth'));
   await capture('compact.png');
-  console.log('Electron smoke passed: frozen model, both predictions, explanations, validation counts and compact layout.');
+  console.log('Electron smoke passed: automatic model load, startup notice, both predictions, validation counts and compact layout.');
 };

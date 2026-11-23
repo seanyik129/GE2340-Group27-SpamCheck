@@ -62,25 +62,33 @@ app.whenReady().then(async () => {
     verifySender(event);
     const parent = BrowserWindow.fromWebContents(event.sender);
     const { canceled, filePaths } = await dialog.showOpenDialog(parent, {
-      title: 'Select the Group 27 model',
+      title: 'Select a SpamCheck model',
       properties: ['openFile'],
-      filters: [{ name: 'SpamCheck model', extensions: ['joblib'] }]
+      filters: [{ name: 'SpamCheck model', extensions: ['skops'] }]
     });
     return canceled ? null : request('install', { path: filePaths[0] });
   });
+  ipcMain.handle('model:restore', event => {
+    verifySender(event);
+    return request('restore');
+  });
+  const smoke = process.argv.includes('--smoke');
+  const webPreferences = {
+    preload: path.join(__dirname, 'preload.cjs'), sandbox: true,
+    contextIsolation: true, nodeIntegration: false
+  };
+  if (smoke) webPreferences.partition = 'spamcheck-smoke';
   const window = new BrowserWindow({
     width: 1240, height: 870, minWidth: 720, minHeight: 600, backgroundColor: '#edf0f8',
     autoHideMenuBar: true,
-    webPreferences: { preload: path.join(__dirname, 'preload.cjs'), sandbox: true,
-      contextIsolation: true, nodeIntegration: false }
+    webPreferences
   });
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   window.webContents.on('will-navigate', event => event.preventDefault());
   await window.loadFile(page);
-  const missingModelSmoke = process.argv.includes('--smoke-missing-model');
-  if (missingModelSmoke || process.argv.includes('--smoke')) {
+  if (smoke) {
     try {
-      await require('./smoke.cjs')(window, process.env.SPAMCHECK_SMOKE_DIR, missingModelSmoke);
+      await require('./smoke.cjs')(window, process.env.SPAMCHECK_SMOKE_DIR);
       app.exit(0);
     } catch (error) {
       console.error(error);

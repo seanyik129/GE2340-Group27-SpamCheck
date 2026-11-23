@@ -9,6 +9,8 @@ data/*
 data/reference/*
 !data/reference/iana-tlds.txt
 *.joblib
+!models/candidate.joblib
+*.skops
 *.pkl
 *.csv
 .env

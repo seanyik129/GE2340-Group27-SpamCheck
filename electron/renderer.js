@@ -2,8 +2,11 @@ const el = id => document.getElementById(id);
 const message = el('message');
 const button = el('predict');
 const loadModelButton = el('load-model');
+const restoreModelButton = el('restore-model');
+const modelNotice = el('default-model-notice');
 let ready = false;
 let busy = false;
+let changingModel = false;
 let revision = 0;
 const examples = {
   promo: 'Congratulations! Claim your free prize today. Enter now at https://example.com/claim and reply WIN to receive your cash reward.',
@@ -14,6 +17,13 @@ const percent = value => (value * 100).toFixed(1) + '%';
 function showError(error) {
   el('app-error').textContent = error.message.replace(/^Error invoking remote method '[^']+': Error: /, '');
   el('app-error').hidden = false;
+}
+
+function syncButtons() {
+  const locked = busy || changingModel;
+  button.disabled = !ready || locked;
+  loadModelButton.disabled = locked;
+  restoreModelButton.disabled = locked;
 }
 
 function clearResult() {
@@ -50,7 +60,7 @@ function renderFeatures(id, values) {
 }
 
 async function predict() {
-  if (!ready || busy) return;
+  if (!ready || busy || changingModel) return;
   if (!message.value.trim()) {
     showError(new Error('Enter a message to check.'));
     message.focus();
@@ -58,7 +68,7 @@ async function predict() {
   }
   const requestRevision = revision;
   busy = true;
-  button.disabled = true;
+  syncButtons();
   button.textContent = 'Checking…';
   el('app-error').hidden = true;
   try {
@@ -77,7 +87,7 @@ async function predict() {
     if (requestRevision === revision) showError(error);
   } finally {
     busy = false;
-    button.disabled = !ready;
+    syncButtons();
     button.textContent = 'Check message';
   }
 }
@@ -93,7 +103,7 @@ message.addEventListener('input', clearResult);
 el('clear').addEventListener('click', () => { message.value = ''; clearResult(); message.focus(); });
 button.addEventListener('click', predict);
 document.addEventListener('keydown', event => {
-  if (event.ctrlKey && event.key === 'Enter' && !el('check-panel').hidden) {
+  if (event.ctrlKey && event.key === 'Enter' && !el('check-panel').hidden && !modelNotice.open) {
     event.preventDefault();
     predict();
   }
@@ -107,44 +117,75 @@ for (const view of ['check', 'evidence']) {
   });
 }
 
-function showModel({ threshold, metrics }) {
-  el('model-state').textContent = 'Frozen report model';
-  el('app-error').hidden = true;
-  loadModelButton.hidden = true;
-  el('threshold').textContent = 'Decision threshold ' + percent(threshold);
-  el('threshold-marker').style.setProperty('--threshold', percent(threshold));
+function showMetrics(metrics) {
+  el('evaluation-details').hidden = !metrics;
+  if (!metrics) {
+    el('sample').textContent = 'The report’s validation results are available for the default model.';
+    return;
+  }
   el('sample').textContent = metrics.n + ' held-out messages · ' + metrics.spam_n + ' spam · ' + metrics.legitimate_n + ' normal';
-  for (const [label, value] of [
+  const cards = [
     ['Precision', percent(metrics.precision)], ['Recall', percent(metrics.recall)],
     ['False-positive rate', percent(metrics.false_positive_rate)], ['F1', metrics.f1.toFixed(3)]
-  ]) {
+  ].map(([label, value]) => {
     const item = document.createElement('div');
     item.className = 'metric';
     item.textContent = label;
     const number = document.createElement('strong');
     number.textContent = value;
     item.append(number);
-    el('metrics').append(item);
-  }
+    return item;
+  });
+  el('metrics').replaceChildren(...cards);
   for (const id of ['tp', 'fn', 'fp', 'tn']) el(id).textContent = metrics[id];
-  ready = true;
-  button.disabled = false;
 }
 
-async function loadModel(operation) {
-  loadModelButton.disabled = true;
+function showModel({ threshold, metrics, is_default: isDefault }) {
+  clearResult();
+  el('model-state').textContent = isDefault ? 'Frozen report model' : 'Custom model';
+  el('app-error').hidden = true;
+  restoreModelButton.hidden = isDefault;
+  el('threshold').textContent = 'Decision threshold ' + percent(threshold);
+  el('threshold-marker').style.setProperty('--threshold', percent(threshold));
+  showMetrics(metrics);
+  ready = true;
+}
+
+function announceDefault(modelHash) {
+  const key = 'spamcheck.default-model.' + modelHash;
+  try {
+    if (localStorage.getItem(key)) return;
+  } catch {
+    // The app can show the notice even if the browser profile disallows storage.
+  }
+  modelNotice.addEventListener('close', () => {
+    try { localStorage.setItem(key, 'seen'); } catch {}
+  }, { once: true });
+  modelNotice.showModal();
+}
+
+async function loadModel(operation, announce = false) {
+  if (busy || changingModel) return;
+  changingModel = true;
+  syncButtons();
   try {
     const info = await operation();
-    if (info) showModel(info);
+    if (!info) return;
+    showModel(info);
+    if (announce && info.is_default) announceDefault(info.model_sha256);
   } catch (error) {
-    el('model-state').textContent = 'Model unavailable';
-    loadModelButton.hidden = false;
+    if (!ready) {
+      el('model-state').textContent = 'Model unavailable';
+      restoreModelButton.hidden = false;
+    }
     showError(error);
   } finally {
-    loadModelButton.disabled = false;
+    changingModel = false;
+    syncButtons();
   }
 }
 
 loadModelButton.addEventListener('click', () => loadModel(window.spamcheck.installModel));
+restoreModelButton.addEventListener('click', () => loadModel(window.spamcheck.restoreModel));
 clearResult();
-loadModel(window.spamcheck.info);
+loadModel(window.spamcheck.info, true);

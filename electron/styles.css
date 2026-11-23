@@ -254,6 +254,21 @@ td { font-size: 21px; font-variant-numeric: tabular-nums; font-weight: 700; }
 
 .matrix .note { margin-top: 14px; }
 footer { display: flex; justify-content: space-between; gap: 12px; padding: 15px 0 21px; }
+.model-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.model-actions button { padding: 7px 11px; font-size: 14px; }
+#default-model-notice {
+  width: min(440px, calc(100% - 36px));
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--white);
+  color: var(--ink);
+  box-shadow: 0 16px 45px #121a3440;
+}
+#default-model-notice::backdrop { background: #11193170; }
+#default-model-notice h2 { margin: 0; }
+#default-model-notice p { color: var(--muted); line-height: 1.5; }
+#default-model-notice form { display: flex; justify-content: flex-end; margin-top: 20px; }
 #app-error {
   margin-top: 16px;
   padding: 10px 14px;

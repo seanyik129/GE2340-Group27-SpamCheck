@@ -26,11 +26,19 @@ npm.cmd --prefix electron start
 
 After setup, rerun the last command to open the app. On Windows you can also double-click **Start SpamCheck.cmd**.
 
-### Load the report model once
+### Default and custom models
 
-Extract the group-only model package provided by a team member. Open SpamCheck, select **Load group model…**, and choose the extracted **candidate.joblib**. SpamCheck verifies the file against the report’s model fingerprint and saves a local copy at `data/student/expanded250/candidate.joblib`. Subsequent launches use that copy. The group shares this file separately because its fitted vocabulary includes donated messages.
+SpamCheck automatically loads the bundled Group 27 report model. The first successful load opens a notice with instructions for switching models.
 
-Use **Try a promotion** or **Try a campus notice**, then select **Check message**. **Validation results** shows the frozen model’s 200-message evaluation. Inference runs locally.
+Select **Change model…** and open a compatible SpamCheck `.skops` file. The selected model stays active after you restart the app. Select **Use default model** to return to the Group 27 model. The 200-message validation results apply to the default model.
+
+To export a trusted SpamCheck training bundle, use the project’s Python environment. Use `.\.venv\Scripts\python.exe` on Windows in place of `./.venv/bin/python`.
+
+```
+./.venv/bin/python electron/export_model.py path/to/candidate.joblib alternative.skops
+```
+
+Use **Try a promotion** or **Try a campus notice**, then select **Check message**. Inference runs locally.
 
 ## Source guide
 
@@ -38,5 +46,6 @@ Use **Try a promotion** or **Try a campus notice**, then select **Check message*
 | --- | --- |
 | `electron/` | Desktop interface, Electron main and preload processes, and the local JSON bridge |
 | `src/spamcheck/` | Inference preprocessing and model scoring |
+| `models/candidate.joblib` | Frozen Group 27 report model |
 | `data/reference/iana-tlds.txt` | Pinned [IANA domain suffix snapshot](https://data.iana.org/TLD/tlds-alpha-by-domain.txt) for URL masking |
 | `results/new200/metrics.json` | Aggregate evaluation counts, measures, and model fingerprint |

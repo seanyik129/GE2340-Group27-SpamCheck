@@ -39,6 +39,5 @@ jobs:
           fi
           "./$venv_python" -m pip install --only-binary=:all: -r requirements.txt
           npm --prefix electron ci
-          npm --prefix electron start -- --smoke-missing-model
-          "./$venv_python" tests/desktop_model_fixture.py
+          "./$venv_python" tests/desktop_models.py
           npm --prefix electron start -- --smoke

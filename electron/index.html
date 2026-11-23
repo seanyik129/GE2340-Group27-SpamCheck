@@ -23,7 +23,10 @@
   </header>
   <main class="shell">
     <div id="app-error" role="alert" hidden></div>
-    <button id="load-model" hidden>Load group model…</button>
+    <div class="model-actions">
+      <button id="load-model" disabled>Change model…</button>
+      <button id="restore-model" hidden>Use default model</button>
+    </div>
     <section id="check-panel" aria-labelledby="check-title">
       <div class="page-head">
         <h1 id="check-title">Message check</h1>
@@ -75,7 +78,7 @@
         <h1 id="evidence-title">Validation results</h1>
         <p id="sample"></p>
       </div>
-      <div class="evidence">
+      <div class="evidence" id="evaluation-details" hidden>
         <div class="metrics" id="metrics"></div>
         <div class="matrix">
           <table>
@@ -92,5 +95,11 @@
     </section>
     <footer><span>Runs locally</span><span>GE2340 Group 27</span></footer>
   </main>
+  <dialog id="default-model-notice" aria-labelledby="default-model-title" aria-describedby="default-model-instructions">
+    <h2 id="default-model-title">Default model imported</h2>
+    <p>SpamCheck automatically loaded the Group 27 report model.</p>
+    <p id="default-model-instructions">To switch, select <strong>Change model…</strong> and open a compatible <code>.skops</code> file. Select <strong>Use default model</strong> to switch back.</p>
+    <form method="dialog"><button class="primary" id="acknowledge-model" autofocus>OK</button></form>
+  </dialog>
 </body>
 </html>
