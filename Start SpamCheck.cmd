@@ -1,10 +1,14 @@
 @echo off
 setlocal
-set "spamcheck_app=%~dp0electron"
-set "spamcheck_electron=%spamcheck_app%\node_modules\electron\dist\electron.exe"
-if not exist "%spamcheck_electron%" (
-    echo Install Electron using the setup instructions in electron\README.md.
+where npm.cmd >nul 2>&1
+if errorlevel 1 (
+    echo Install Node.js and follow the setup steps in README.md.
     pause
     exit /b 1
 )
-start "" "%spamcheck_electron%" "%spamcheck_app%"
+call npm.cmd --prefix "%~dp0electron" start %*
+if errorlevel 1 (
+    echo Follow the desktop setup steps in README.md before starting SpamCheck.
+    pause
+    exit /b 1
+)

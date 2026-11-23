@@ -1,23 +1,36 @@
 # SpamCheck
 
-SpamCheck is GE2340 Group 27’s Windows desktop prototype for explainable English spam detection. The Electron interface sends message text to a local Python bridge, which runs the validated word and character TF-IDF logistic regression model. The interface displays a spam score, the decision cutoff, and signed contributions from the text features.
+SpamCheck is GE2340 Group 27’s desktop prototype for explainable English spam detection. It runs on Windows and macOS with the same frozen word and character TF-IDF logistic regression model used in the report. It displays a spam score, the decision cutoff, and signed contributions from the text features.
 
 ## Desktop setup
 
-Use Windows, Python 3.12, and Node.js 22.12 or later. From the repository root:
+Install Python 3.12 and Node.js 22.12 or later. Use 64-bit versions built for your processor. Run these commands from the repository root.
+
+### macOS (Apple silicon or Intel)
+
+```sh
+python3.12 -m venv .venv
+./.venv/bin/python -m pip install --only-binary=:all: -r requirements.txt
+npm --prefix electron ci
+npm --prefix electron start
+```
+
+### Windows (PowerShell)
 
 ```powershell
 py -3.12 -m venv .venv
-& .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-Set-Location electron
-npm ci
-npm exec -- install-electron
-Set-Location ..
+.\.venv\Scripts\python.exe -m pip install --only-binary=:all: -r requirements.txt
+npm.cmd --prefix electron ci
+npm.cmd --prefix electron start
 ```
 
-For a run with the evaluated classifier, use the group’s authorized copy of the frozen model at `data/student/expanded250/candidate.joblib`. The model contains a vocabulary fitted on donated messages and is kept in the group’s private project. The bridge checks the model hash and decision threshold against the aggregate evaluation record when it loads the model.
+After setup, rerun the last command to open the app. On Windows you can also double-click **Start SpamCheck.cmd**.
 
-Open **Start SpamCheck.cmd**. Use **Try a promotion** or **Try a campus notice**, then select **Check message**. **Validation results** shows the stored measures for the frozen model’s 200-message evaluation.
+### Load the report model once
+
+Extract the group-only model package provided by a team member. Open SpamCheck, select **Load group model…**, and choose the extracted **candidate.joblib**. SpamCheck verifies the file against the report’s model fingerprint and saves a local copy at `data/student/expanded250/candidate.joblib`. Subsequent launches use that copy. The group shares this file separately because its fitted vocabulary includes donated messages.
+
+Use **Try a promotion** or **Try a campus notice**, then select **Check message**. **Validation results** shows the frozen model’s 200-message evaluation. Inference runs locally.
 
 ## Source guide
 

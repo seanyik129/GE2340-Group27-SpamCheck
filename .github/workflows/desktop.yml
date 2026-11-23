@@ -1,0 +1,44 @@
+name: Desktop smoke tests
+
+on: [push, pull_request, workflow_dispatch]
+
+permissions:
+  contents: read
+
+jobs:
+  desktop:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2025, macos-15, macos-15-intel]
+    defaults:
+      run:
+        working-directory: SpamCheck Desktop
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          path: SpamCheck Desktop
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - uses: actions/setup-python@v7.1.0
+        with:
+          python-version: '3.12'
+      - name: Install dependencies and test the desktop
+        run: |
+          python -m venv .venv
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            venv_python=.venv/Scripts/python.exe
+          else
+            venv_python=.venv/bin/python
+          fi
+          "./$venv_python" -m pip install --only-binary=:all: -r requirements.txt
+          npm --prefix electron ci
+          npm --prefix electron start -- --smoke-missing-model
+          "./$venv_python" tests/desktop_model_fixture.py
+          npm --prefix electron start -- --smoke

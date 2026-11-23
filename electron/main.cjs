@@ -1,19 +1,18 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const { spawn } = require('node:child_process');
-const fs = require('node:fs');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 
 const root = path.resolve(__dirname, '..');
 const page = path.join(__dirname, 'index.html');
-const python = process.env.SPAMCHECK_PYTHON || [
-  path.join(root, '.venv', 'Scripts', 'python.exe'),
-  path.resolve(root, '../../work/ge2340-venv/Scripts/python.exe')
-].find(file => fs.existsSync(file)) || 'python';
+const venv = path.join(root, '.venv');
+const python = process.env.SPAMCHECK_PYTHON || (process.platform === 'win32'
+  ? path.join(venv, 'Scripts', 'python.exe')
+  : path.join(venv, 'bin', 'python'));
 
-function request(action, text) {
+function request(action, fields = {}) {
   return new Promise((resolve, reject) => {
-    const child = spawn(python, ['-I', path.join(__dirname, 'bridge.py')], {
+    const child = spawn(python, ['-I', '-X', 'utf8', path.join(__dirname, 'bridge.py')], {
       cwd: root, windowsHide: true, stdio: ['pipe', 'pipe', 'ignore']
     });
     const timeout = setTimeout(() => {
@@ -26,7 +25,7 @@ function request(action, text) {
     child.stdin.on('error', () => {});
     child.on('error', () => {
       clearTimeout(timeout);
-      reject(new Error('The project Python environment could not start.'));
+      reject(new Error('Python could not start. Create the project environment using the setup steps in README.md.'));
     });
     child.on('close', code => {
       clearTimeout(timeout);
@@ -39,7 +38,7 @@ function request(action, text) {
         reject(new Error('The local model returned an invalid response.'));
       }
     });
-    child.stdin.end(JSON.stringify({ action, text }));
+    child.stdin.end(JSON.stringify({ action, ...fields }));
   });
 }
 
@@ -57,7 +56,17 @@ app.whenReady().then(async () => {
     verifySender(event);
     if (typeof text !== 'string' || !text.trim() || text.length > 10000)
       throw new Error('Enter an English message of up to 10,000 characters.');
-    return request('predict', text);
+    return request('predict', { text });
+  });
+  ipcMain.handle('model:install', async event => {
+    verifySender(event);
+    const parent = BrowserWindow.fromWebContents(event.sender);
+    const { canceled, filePaths } = await dialog.showOpenDialog(parent, {
+      title: 'Select the Group 27 model',
+      properties: ['openFile'],
+      filters: [{ name: 'SpamCheck model', extensions: ['joblib'] }]
+    });
+    return canceled ? null : request('install', { path: filePaths[0] });
   });
   const window = new BrowserWindow({
     width: 1240, height: 870, minWidth: 720, minHeight: 600, backgroundColor: '#edf0f8',
@@ -68,9 +77,10 @@ app.whenReady().then(async () => {
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   window.webContents.on('will-navigate', event => event.preventDefault());
   await window.loadFile(page);
-  if (process.argv.includes('--smoke')) {
+  const missingModelSmoke = process.argv.includes('--smoke-missing-model');
+  if (missingModelSmoke || process.argv.includes('--smoke')) {
     try {
-      await require('./smoke.cjs')(window, process.env.SPAMCHECK_SMOKE_DIR);
+      await require('./smoke.cjs')(window, process.env.SPAMCHECK_SMOKE_DIR, missingModelSmoke);
       app.exit(0);
     } catch (error) {
       console.error(error);

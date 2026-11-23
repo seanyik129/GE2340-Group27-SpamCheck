@@ -1,6 +1,7 @@
 const el = id => document.getElementById(id);
 const message = el('message');
 const button = el('predict');
+const loadModelButton = el('load-model');
 let ready = false;
 let busy = false;
 let revision = 0;
@@ -27,7 +28,7 @@ function clearResult() {
   el('negative').replaceChildren();
   el('feature-empty').hidden = false;
   el('feature-detail').hidden = true;
-  el('app-error').hidden = true;
+  if (ready) el('app-error').hidden = true;
 }
 
 function renderFeatures(id, values) {
@@ -106,9 +107,10 @@ for (const view of ['check', 'evidence']) {
   });
 }
 
-clearResult();
-window.spamcheck.info().then(({ threshold, metrics }) => {
+function showModel({ threshold, metrics }) {
   el('model-state').textContent = 'Frozen report model';
+  el('app-error').hidden = true;
+  loadModelButton.hidden = true;
   el('threshold').textContent = 'Decision threshold ' + percent(threshold);
   el('threshold-marker').style.setProperty('--threshold', percent(threshold));
   el('sample').textContent = metrics.n + ' held-out messages · ' + metrics.spam_n + ' spam · ' + metrics.legitimate_n + ' normal';
@@ -127,4 +129,22 @@ window.spamcheck.info().then(({ threshold, metrics }) => {
   for (const id of ['tp', 'fn', 'fp', 'tn']) el(id).textContent = metrics[id];
   ready = true;
   button.disabled = false;
-}).catch(error => { el('model-state').textContent = 'Model unavailable'; showError(error); });
+}
+
+async function loadModel(operation) {
+  loadModelButton.disabled = true;
+  try {
+    const info = await operation();
+    if (info) showModel(info);
+  } catch (error) {
+    el('model-state').textContent = 'Model unavailable';
+    loadModelButton.hidden = false;
+    showError(error);
+  } finally {
+    loadModelButton.disabled = false;
+  }
+}
+
+loadModelButton.addEventListener('click', () => loadModel(window.spamcheck.installModel));
+clearResult();
+loadModel(window.spamcheck.info);
