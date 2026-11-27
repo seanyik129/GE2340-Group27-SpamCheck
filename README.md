@@ -30,7 +30,7 @@ After setup, rerun the last command to open the app. On Windows you can also dou
 
 SpamCheck automatically loads the bundled Group 27 report model. The first successful load opens a notice with instructions for switching models.
 
-A progress dialog stays open while the app prepares the model. First launch can take longer. If loading fails, select **Retry loading**.
+A progress dialog stays open while the app prepares the model. Model setup has a three-minute timeout. If loading fails, select **Retry loading**.
 
 Select **Change model…** and open a compatible SpamCheck `.skops` file. The selected model stays active after you restart the app. Select **Use default model** to return to the Group 27 model. The 200-message validation results apply to the default model.
 

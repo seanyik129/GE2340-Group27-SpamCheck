@@ -1,7 +1,7 @@
 const { spawn } = require('node:child_process');
 const { createInterface } = require('node:readline');
 
-const STARTUP_TIMEOUT_MS = 120_000;
+const STARTUP_TIMEOUT_MS = 180_000;
 const PREDICTION_TIMEOUT_MS = 20_000;
 
 function createModelWorker(python, bridge, cwd) {
