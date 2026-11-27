@@ -12,20 +12,11 @@ CUSTOM_MODEL = ROOT / "data/desktop/active-model.skops"
 sys.path.insert(0, str(ROOT / "src"))
 
 
-def bridge(action, **fields):
-    completed = subprocess.run(
-        [sys.executable, "-I", "-X", "utf8", str(ROOT / "electron/bridge.py")],
-        input=json.dumps({"action": action, **fields}, ensure_ascii=False),
-        capture_output=True,
-        encoding="utf-8",
-        check=True,
-    )
-    return json.loads(completed.stdout)
-
-
-def main():
-    if CUSTOM_MODEL.exists():
-        raise ValueError("Use an empty test checkout to preserve your selected model.")
+def check_model_switching(worker):
+    def bridge(action, **fields):
+        worker.stdin.write(json.dumps({"action": action, **fields}, ensure_ascii=False) + "\n")
+        worker.stdin.flush()
+        return json.loads(worker.stdout.readline())
 
     default = bridge("info")["result"]
     assert default["is_default"]
@@ -66,6 +57,20 @@ def main():
 
     assert not CUSTOM_MODEL.exists()
     assert bridge("predict", text=message)["result"] == original
+
+
+def main():
+    if CUSTOM_MODEL.exists():
+        raise ValueError("Use an empty test checkout to preserve your selected model.")
+    with subprocess.Popen(
+        [sys.executable, "-I", "-X", "utf8", str(ROOT / "electron/bridge.py"), "--serve"],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        encoding="utf-8",
+    ) as worker:
+        check_model_switching(worker)
+
+    assert worker.returncode == 0
     print("Verified bundled model, custom export and install, invalid-file handling and default restore.")
 
 

@@ -2,13 +2,17 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { setTimeout: delay } = require('node:timers/promises');
+const { STARTUP_TIMEOUT_MS } = require('./model-worker.cjs');
 
 module.exports = async function smoke(window, screenshotDir) {
   const run = source => window.webContents.executeJavaScript(source);
-  async function waitFor(expression) {
-    const deadline = Date.now() + 22000;
+  async function waitFor(expression, timeout = 22_000) {
+    const deadline = Date.now() + timeout;
     while (Date.now() < deadline) {
       if (await run(expression)) return;
+      if (await run('!document.getElementById("app-error").hidden')) {
+        throw new Error(await run('document.getElementById("app-error").textContent'));
+      }
       await delay(100);
     }
     throw new Error(await run('document.body.innerText'));
@@ -18,7 +22,7 @@ module.exports = async function smoke(window, screenshotDir) {
     fs.mkdirSync(screenshotDir, { recursive: true });
     fs.writeFileSync(path.join(screenshotDir, name), (await window.capturePage()).toPNG());
   }
-  await waitFor('document.getElementById("default-model-notice").open');
+  await waitFor('document.getElementById("default-model-notice").open', STARTUP_TIMEOUT_MS + 2_000);
   assert.equal(await run('document.getElementById("default-model-title").textContent'), 'Default model imported');
   assert.match(await run('document.getElementById("default-model-instructions").textContent'), /Change model.*\.skops.*Use default model/);
   await capture('default-model-notice.png');

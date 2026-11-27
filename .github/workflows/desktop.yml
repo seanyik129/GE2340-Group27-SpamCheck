@@ -39,5 +39,21 @@ jobs:
           fi
           "./$venv_python" -m pip install --only-binary=:all: -r requirements.txt
           npm --prefix electron ci
-          "./$venv_python" tests/desktop_models.py
+      - name: Verify first launch with slow model startup
+        run: |
+          bridge_backup="$RUNNER_TEMP/spamcheck-bridge.py"
+          cp electron/bridge.py "$bridge_backup"
+          trap 'cp "$bridge_backup" electron/bridge.py' EXIT
+          {
+            printf 'from time import sleep\nsleep(23)\n'
+            cat "$bridge_backup"
+          } > electron/bridge.py
           npm --prefix electron start -- --smoke
+      - name: Verify model switching in the running worker
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            venv_python=.venv/Scripts/python.exe
+          else
+            venv_python=.venv/bin/python
+          fi
+          "./$venv_python" tests/desktop_models.py

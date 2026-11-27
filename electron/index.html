@@ -24,6 +24,7 @@
   <main class="shell">
     <div id="app-error" role="alert" hidden></div>
     <div class="model-actions">
+      <button id="retry-model" hidden>Retry loading</button>
       <button id="load-model" disabled>Change model…</button>
       <button id="restore-model" hidden>Use default model</button>
     </div>
@@ -57,7 +58,7 @@
             <progress id="meter" max="1" value="0" aria-label="Spam score"></progress>
             <span id="threshold-marker" aria-hidden="true"></span>
           </div>
-          <p id="threshold" class="note">Loading decision threshold…</p>
+          <p id="threshold" class="note">Preparing the model. The first launch may take longer.</p>
           <p id="language" class="note" hidden></p>
           <div class="explanation">
             <h3>Feature contributions</h3>

@@ -1,7 +1,7 @@
 const { app, BrowserWindow, dialog, ipcMain } = require('electron');
-const { spawn } = require('node:child_process');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
+const { createModelWorker } = require('./model-worker.cjs');
 
 const root = path.resolve(__dirname, '..');
 const page = path.join(__dirname, 'index.html');
@@ -10,36 +10,12 @@ const python = process.env.SPAMCHECK_PYTHON || (process.platform === 'win32'
   ? path.join(venv, 'Scripts', 'python.exe')
   : path.join(venv, 'bin', 'python'));
 
-function request(action, fields = {}) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(python, ['-I', '-X', 'utf8', path.join(__dirname, 'bridge.py')], {
-      cwd: root, windowsHide: true, stdio: ['pipe', 'pipe', 'ignore']
-    });
-    const timeout = setTimeout(() => {
-      child.kill();
-      reject(new Error('The model took too long to respond.'));
-    }, 20000);
-    let output = '';
-    child.stdout.setEncoding('utf8');
-    child.stdout.on('data', chunk => { output += chunk; });
-    child.stdin.on('error', () => {});
-    child.on('error', () => {
-      clearTimeout(timeout);
-      reject(new Error('Python could not start. Create the project environment using the setup steps in README.md.'));
-    });
-    child.on('close', code => {
-      clearTimeout(timeout);
-      try {
-        if (code !== 0) throw new Error();
-        const response = JSON.parse(output);
-        if (response.error) return reject(new Error(response.error));
-        resolve(response.result);
-      } catch {
-        reject(new Error('The local model returned an invalid response.'));
-      }
-    });
-    child.stdin.end(JSON.stringify({ action, ...fields }));
-  });
+const modelWorker = createModelWorker(python, path.join(__dirname, 'bridge.py'), root);
+const { request } = modelWorker;
+
+function exitApp(code) {
+  modelWorker.close();
+  app.exit(code);
 }
 
 function verifySender(event) {
@@ -89,12 +65,13 @@ app.whenReady().then(async () => {
   if (smoke) {
     try {
       await require('./smoke.cjs')(window, process.env.SPAMCHECK_SMOKE_DIR);
-      app.exit(0);
+      exitApp(0);
     } catch (error) {
       console.error(error);
-      app.exit(1);
+      exitApp(1);
     }
   }
-}).catch(error => { console.error(error); app.exit(1); });
+}).catch(error => { console.error(error); exitApp(1); });
 
 app.on('window-all-closed', () => app.quit());
+app.on('will-quit', modelWorker.close);

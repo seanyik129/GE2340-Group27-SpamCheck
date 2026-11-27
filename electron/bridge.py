@@ -1,4 +1,5 @@
 """Local JSON bridge for model selection and inference."""
+from functools import lru_cache
 import hashlib
 from io import BytesIO
 import json
@@ -25,6 +26,7 @@ def save_custom_model(model_bytes):
             temporary_path.unlink(missing_ok=True)
 
 
+@lru_cache(maxsize=1)
 def load_default_model():
     import joblib
 
@@ -101,9 +103,9 @@ def run(request):
     return info
 
 
-if __name__ == "__main__":
+def respond(payload):
     try:
-        response = {"result": run(json.load(sys.stdin.buffer))}
+        response = {"result": run(json.loads(payload))}
     except FileNotFoundError as error:
         path = Path(error.filename)
         name = path.relative_to(ROOT).as_posix() if path.is_relative_to(ROOT) else path.name
@@ -116,4 +118,12 @@ if __name__ == "__main__":
         response = {"error": str(error)}
     except Exception:
         response = {"error": "The local model could not run. Check the model file and desktop setup."}
-    print(json.dumps(response, ensure_ascii=True))
+    print(json.dumps(response, ensure_ascii=True), flush=True)
+
+
+if __name__ == "__main__":
+    if "--serve" in sys.argv[1:]:
+        for line in sys.stdin.buffer:
+            respond(line)
+    else:
+        respond(sys.stdin.buffer.read())

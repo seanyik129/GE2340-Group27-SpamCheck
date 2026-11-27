@@ -3,6 +3,7 @@ const message = el('message');
 const button = el('predict');
 const loadModelButton = el('load-model');
 const restoreModelButton = el('restore-model');
+const retryModelButton = el('retry-model');
 const modelNotice = el('default-model-notice');
 let ready = false;
 let busy = false;
@@ -24,6 +25,7 @@ function syncButtons() {
   button.disabled = !ready || locked;
   loadModelButton.disabled = locked;
   restoreModelButton.disabled = locked;
+  retryModelButton.disabled = locked;
 }
 
 function clearResult() {
@@ -145,6 +147,7 @@ function showModel({ threshold, metrics, is_default: isDefault }) {
   el('model-state').textContent = isDefault ? 'Frozen report model' : 'Custom model';
   el('app-error').hidden = true;
   restoreModelButton.hidden = isDefault;
+  retryModelButton.hidden = true;
   el('threshold').textContent = 'Decision threshold ' + percent(threshold);
   el('threshold-marker').style.setProperty('--threshold', percent(threshold));
   showMetrics(metrics);
@@ -167,6 +170,11 @@ function announceDefault(modelHash) {
 async function loadModel(operation, announce = false) {
   if (busy || changingModel) return;
   changingModel = true;
+  if (!ready) {
+    el('model-state').textContent = 'Loading model';
+    el('app-error').hidden = true;
+    el('threshold').textContent = 'Preparing the model. The first launch may take longer.';
+  }
   syncButtons();
   try {
     const info = await operation();
@@ -177,6 +185,8 @@ async function loadModel(operation, announce = false) {
     if (!ready) {
       el('model-state').textContent = 'Model unavailable';
       restoreModelButton.hidden = false;
+      retryModelButton.hidden = false;
+      el('threshold').textContent = 'The model is unavailable.';
     }
     showError(error);
   } finally {
@@ -187,5 +197,6 @@ async function loadModel(operation, announce = false) {
 
 loadModelButton.addEventListener('click', () => loadModel(window.spamcheck.installModel));
 restoreModelButton.addEventListener('click', () => loadModel(window.spamcheck.restoreModel));
+retryModelButton.addEventListener('click', () => loadModel(window.spamcheck.info, true));
 clearResult();
 loadModel(window.spamcheck.info, true);
