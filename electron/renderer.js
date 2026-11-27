@@ -4,6 +4,7 @@ const button = el('predict');
 const loadModelButton = el('load-model');
 const restoreModelButton = el('restore-model');
 const retryModelButton = el('retry-model');
+const loadingNotice = el('model-loading-notice');
 const modelNotice = el('default-model-notice');
 let ready = false;
 let busy = false;
@@ -167,20 +168,20 @@ function announceDefault(modelHash) {
   modelNotice.showModal();
 }
 
-async function loadModel(operation, announce = false) {
+async function loadModel(operation, startup = false) {
   if (busy || changingModel) return;
   changingModel = true;
-  if (!ready) {
+  if (startup) {
     el('model-state').textContent = 'Loading model';
     el('app-error').hidden = true;
     el('threshold').textContent = 'Preparing the model. The first launch may take longer.';
   }
   syncButtons();
+  let info;
   try {
-    const info = await operation();
-    if (!info) return;
-    showModel(info);
-    if (announce && info.is_default) announceDefault(info.model_sha256);
+    if (startup) loadingNotice.showModal();
+    info = await operation();
+    if (info) showModel(info);
   } catch (error) {
     if (!ready) {
       el('model-state').textContent = 'Model unavailable';
@@ -189,10 +190,13 @@ async function loadModel(operation, announce = false) {
       el('threshold').textContent = 'The model is unavailable.';
     }
     showError(error);
+    return;
   } finally {
+    if (startup && loadingNotice.open) loadingNotice.close();
     changingModel = false;
     syncButtons();
   }
+  if (startup && info?.is_default) announceDefault(info.model_sha256);
 }
 
 loadModelButton.addEventListener('click', () => loadModel(window.spamcheck.installModel));

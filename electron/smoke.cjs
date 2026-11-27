@@ -22,7 +22,26 @@ module.exports = async function smoke(window, screenshotDir) {
     fs.mkdirSync(screenshotDir, { recursive: true });
     fs.writeFileSync(path.join(screenshotDir, name), (await window.capturePage()).toPNG());
   }
+  if (process.env.SPAMCHECK_SMOKE_EXPECT_LOADING === '1') {
+    await waitFor('document.getElementById("model-loading-notice").open');
+    assert.equal(await run('document.getElementById("model-loading-detail").textContent'), 'This may take a few minutes.');
+    assert.ok(await run('document.getElementById("model-loading-progress").matches("[role=progressbar]:not([aria-valuenow])")'));
+    if (!(await run('matchMedia("(prefers-reduced-motion: reduce)").matches'))) {
+      const motion = await run(`(() => {
+        const [animation] = document.querySelector('#model-loading-progress span').getAnimations();
+        return {
+          direction: animation.effect.getTiming().direction,
+          transforms: animation.effect.getKeyframes().map(frame => frame.transform)
+        };
+      })()`);
+      assert.deepEqual(motion, { direction: 'normal', transforms: ['translateX(-100%)', 'translateX(250%)'] });
+    }
+    assert.ok(await run('document.getElementById("predict").disabled'));
+    if (screenshotDir) await delay(400);
+    await capture('model-loading.png');
+  }
   await waitFor('document.getElementById("default-model-notice").open', STARTUP_TIMEOUT_MS + 2_000);
+  assert.ok(await run('!document.getElementById("model-loading-notice").open'));
   assert.equal(await run('document.getElementById("default-model-title").textContent'), 'Default model imported');
   assert.match(await run('document.getElementById("default-model-instructions").textContent'), /Change model.*\.skops.*Use default model/);
   await capture('default-model-notice.png');
@@ -58,5 +77,5 @@ module.exports = async function smoke(window, screenshotDir) {
   await run('document.getElementById("check-view").click()');
   assert.ok(await run('document.documentElement.scrollWidth <= innerWidth'));
   await capture('compact.png');
-  console.log('Electron smoke passed: automatic model load, startup notice, both predictions, validation counts and compact layout.');
+  console.log('Electron smoke passed: model loading and import notices, both predictions, validation counts and compact layout.');
 };

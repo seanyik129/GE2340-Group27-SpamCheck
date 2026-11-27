@@ -96,7 +96,14 @@
     </section>
     <footer><span>Runs locally</span><span>GE2340 Group 27</span></footer>
   </main>
-  <dialog id="default-model-notice" aria-labelledby="default-model-title" aria-describedby="default-model-instructions">
+  <dialog class="model-dialog" id="model-loading-notice" aria-labelledby="model-loading-title" aria-describedby="model-loading-detail">
+    <h2 id="model-loading-title">Loading model</h2>
+    <p id="model-loading-detail">This may take a few minutes.</p>
+    <div id="model-loading-progress" role="progressbar" aria-label="Model loading progress">
+      <span aria-hidden="true"></span>
+    </div>
+  </dialog>
+  <dialog class="model-dialog" id="default-model-notice" aria-labelledby="default-model-title" aria-describedby="default-model-instructions">
     <h2 id="default-model-title">Default model imported</h2>
     <p>SpamCheck automatically loaded the Group 27 report model.</p>
     <p id="default-model-instructions">To switch, select <strong>Change model…</strong> and open a compatible <code>.skops</code> file. Select <strong>Use default model</strong> to switch back.</p>

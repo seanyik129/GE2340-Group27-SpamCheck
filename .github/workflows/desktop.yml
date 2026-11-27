@@ -48,7 +48,7 @@ jobs:
             printf 'from time import sleep\nsleep(23)\n'
             cat "$bridge_backup"
           } > electron/bridge.py
-          npm --prefix electron start -- --smoke
+          SPAMCHECK_SMOKE_EXPECT_LOADING=1 npm --prefix electron start -- --smoke
       - name: Verify model switching in the running worker
         run: |
           if [[ "$RUNNER_OS" == "Windows" ]]; then
